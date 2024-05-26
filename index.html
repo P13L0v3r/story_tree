@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Dechli: Story Editor</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/themes/light.css"
+        />
+        <script
+            type="module"
+            src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/shoelace.js"
+        ></script>
+
+        <script src="script.js"></script>
+        <style type="text/css">
+            html,
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            svg {
+                border: 1px solid #aaa;
+            }
+            .hovered {
+                stroke: blue;
+            }
+            .mergeable {
+                stroke: red;
+            }
+            #tooltip {
+                position: absolute;
+                border-style: solid;
+                border-width: 1px;
+                border-color: black;
+                width: max-content;
+                padding: 5px;
+                background-color: white;
+                pointer-events: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="tooltip" style="transform: translate(0px, 0px); display: none">
+            Tooltip
+        </div>
+        <svg
+            id="interactive"
+            width="1400"
+            height="700"
+            viewBox="-350 -350 1400 700"
+        ></svg>
+        <sl-textarea
+            id="fileContents"
+            style="float: right; width: 25vw; max-height: 100vh"
+            rows="30"
+            disabled
+        ></sl-textarea>
+        <input type="file" id="fileInput" accept=".dechli">
+        <a id="downloadButton" style="display:none;">Save File</a>
+        <sl-drawer id="nodeViewer" label="Node"></sl-drawer>
+    </body>
+</html>
