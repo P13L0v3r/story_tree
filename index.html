@@ -51,22 +51,19 @@
             height="700"
             viewBox="-350 -350 1400 700"
         ></svg>
-        <sl-textarea
-            id="fileContents"
-            style="display: none;"
-            rows="30"
-            disabled
-        ></sl-textarea>
         <div style="float: right; width: 25vw;">
-            <input type="file" id="fileInput" accept=".dechli">
-            <a id="downloadButton" style="display:none;">Save File</a>
             <h2>Controls</h2>
             <p>Scroll to zoom, drag on the canvas to pan.</p>
             <p>Press <code>Shift+D</code> to add a decision.</p>
             <p>Press <code>Shift+C</code> while hovering over a decision to add a choice.</p>
             <p>Drag a choice over another decision to create a link.</p>
             <p>Click on links and choices to edit them.</p>
+            <p>Drag decisions around and watch them float away from eachother.</p>
+            <p>Hover over any object and press <code>Delete</code> to delete it.</p>
+            <h2>Save and Load</h2>
+            <input type="file" id="fileInput" accept=".dechli">
+            <a id="downloadButton" style="display:none;">Save File</a>
         </div>
-        <sl-drawer id="nodeViewer" label="Node"></sl-drawer>
+        <sl-drawer id="nodeViewer" label="NodeViewer"></sl-drawer>
     </body>
 </html>

@@ -31,30 +31,17 @@ class DecisionNode extends Node {
     }
 }
 class ChoiceNode extends Node {
-    constructor(jRef, cx, cy) {
+    constructor(jRef, cx, cy, decision) {
         super(jRef, cx, cy);
         this.tag = "choice";
         this.id = "";
         this.text = "";
         this.outgoingLink = "";
+        this.decision = decision;
     }
 }
 
 $(document).ready(function () {
-    let textarea = document.querySelector("#fileContents");
-
-    /* textarea.addEventListener("sl-change", function () {
-        createFromText(textarea.value);
-    }); */
-
-    textarea.addEventListener("sl-focus", function () {
-        inputtingText = true;
-    });
-
-    textarea.addEventListener("sl-blur", function () {
-        inputtingText = false;
-    });
-
     const weight = 100;
     const maxDistance = 200;
     //const mouseProximity = 1000;
@@ -63,7 +50,7 @@ $(document).ready(function () {
     const grabThreshold = 100;
     let bucketSize = 200;
 
-    let inputtingText = false;
+    let fileText = "";
 
     let start, previousTimeStamp;
 
@@ -204,20 +191,22 @@ $(document).ready(function () {
             hoveredObj.addClass("beingViewed");
             let uuid = hoveredObj.data("uuid");
             let link = linkObjs[uuid];
-            let textInput = document.createElement("sl-textarea");
-            textInput.label = "Description";
-            textInput.value = link.text;
-            textInput.addEventListener("sl-input", function (event) {
-                link.text = event.target.value;
-            });
-            $("#nodeViewer").html("").append(textInput);
-            document.querySelector("#nodeViewer").label = "Link";
-            document
-                .querySelector("#nodeViewer")
-                .addEventListener("sl-after-hide", function () {
-                    hoveredObj.removeClass("beingViewed");
+            if (link) {
+                let textInput = document.createElement("sl-textarea");
+                textInput.label = "Description";
+                textInput.value = link.text;
+                textInput.addEventListener("sl-input", function (event) {
+                    link.text = event.target.value;
                 });
-            document.querySelector("#nodeViewer").show();
+                $("#nodeViewer").html("").append(textInput);
+                document.querySelector("#nodeViewer").label = "Link";
+                document
+                    .querySelector("#nodeViewer")
+                    .addEventListener("sl-after-hide", function () {
+                        hoveredObj.removeClass("beingViewed");
+                    });
+                document.querySelector("#nodeViewer").show();
+            }
         }
     });
 
@@ -284,7 +273,8 @@ $(document).ready(function () {
                         nodeObjs[uuid] = new ChoiceNode(
                             $(choice),
                             minX + mouseX * scale,
-                            minY + mouseY * scale
+                            minY + mouseY * scale,
+                            hoveredID
                         );
                         decisionNode.choices.add(uuid);
                         interactive.append(choice);
@@ -294,20 +284,45 @@ $(document).ready(function () {
 
                 event.preventDefault();
                 break;
-            /* case "E":
-                $(".hovered.choiceNode").each(function () {
-                    let objToEdit = nodeObjs[$(this).data("uuid")];
-                    let id = prompt(
-                        "Edit id",
-                        objToEdit.id ? objToEdit.id : ""
-                    );
-                    objToEdit.id = id;
+            case "Delete":
+                $(".hovered").each(function () {
+                    const uuid = $(this).data("uuid");
+                    recursiveDelete(uuid);
                 });
-                break; */
+                break;
             default:
                 break;
         }
     });
+
+    const recursiveDelete = function (uuid) {
+        if (linkObjs[uuid]) {
+            const startID = linkObjs[uuid].start;
+            const endID = linkObjs[uuid].end;
+            nodeObjs[startID].outgoingLink = "";
+            nodeObjs[endID].incomingLinks.delete(uuid);
+            linkObjs[uuid].jRef.remove();
+            delete linkObjs[uuid];
+        } else if (nodeObjs[uuid]) {
+            if (nodeObjs[uuid].tag === "choice") {
+                const linkID = nodeObjs[uuid].outgoingLink;
+                recursiveDelete(linkID);
+                const decisionID = nodeObjs[uuid].decision;
+                nodeObjs[decisionID].choices.delete(uuid);
+            } else if (nodeObjs[uuid].tag === "decision") {
+                const choices = nodeObjs[uuid].choices;
+                choices.forEach((choiceID) => {
+                    recursiveDelete(choiceID);
+                });
+                const incomingLinks = nodeObjs[uuid].incomingLinks;
+                incomingLinks.forEach((linkID) => {
+                    recursiveDelete(linkID);
+                })
+            }
+            nodeObjs[uuid].jRef.remove();
+            delete nodeObjs[uuid];
+        }
+    }
 
     interactive.on("wheel", function (event) {
         let scroll = event.originalEvent.wheelDelta;
@@ -367,7 +382,7 @@ $(document).ready(function () {
                 let uuid = $(this).data("uuid");
                 if (nodeObjs[uuid].tag === "choice") {
                     let choice = nodeObjs[uuid];
-                    console.log(choice);
+                    //console.log(choice);
                     let idInput = document.createElement("sl-input");
                     idInput.label = "ID";
                     idInput.value = choice.id;
@@ -424,16 +439,19 @@ $(document).ready(function () {
                     $(link).on("mouseenter", function (event) {
                         $(this).addClass("hovered");
                         hoveredObj = $(this);
+                        let text = linkObjs[$(this).data("uuid")].text;
+                        if (text) {
+                            $("#tooltip").text(text);
+                            $("#tooltip").show();
+                        }
                     });
 
                     $(link).on("mouseleave", function (event) {
                         $(this).removeClass("hovered");
-                        if (
-                            hoveredObj &&
-                            hoveredObj.data("uuid") == $(this).data("uuid")
-                        ) {
+                        if (hoveredObj && hoveredObj.data("uuid") == $(this).data("uuid")) {
                             hoveredObj = null;
                         }
+                        $("#tooltip").hide();
                     });
                 }
             }
@@ -471,7 +489,7 @@ $(document).ready(function () {
     };
 
     const broadPhase = function () {
-        console.log(bucketSize);
+        //console.log(bucketSize);
         spatialBuckets = {};
         awakeLinks = [];
         $(".grabbable").each(function () {
@@ -686,7 +704,7 @@ $(document).ready(function () {
             let uuid = awakeLinks[link];
             let linkObj = linkObjs[uuid];
             let linkObjJref = linkObj.jRef;
-            let startObj = nodeObjs[linkObj.start].jRef;
+            //let startObj = nodeObjs[linkObj.start].jRef;
             let endObj = nodeObjs[linkObj.end].jRef;
 
             let startR = 20;
@@ -742,17 +760,25 @@ $(document).ready(function () {
                 if (distanceToMouse <= 20) {
                     linkObjJref.addClass("hovered");
                     hoveredObj = linkObjJref;
+                    let text = linkObjs[uuid].text;
+                    if (text) {
+                        $("#tooltip").text(text);
+                        $("#tooltip").show();
+                    }
                 } else if (
                     hoveredObj &&
-                    hoveredObj.data("uuid") == linkObjJref.data("uuid")
+                    hoveredObj.data("uuid") == uuid
                 ) {
                     linkObjJref.removeClass("hovered");
                     hoveredObj = null;
+                    $("#tooltip").hide();
                 } else {
                     linkObjJref.removeClass("hovered");
+                    $("#tooltip").hide();
                 }
             } else {
                 linkObjJref.removeClass("hovered");
+                $("#tooltip").hide();
             }
 
             interactive.append(linkObjJref);
@@ -989,6 +1015,11 @@ $(document).ready(function () {
             $(link).on("mouseenter", function (event) {
                 $(this).addClass("hovered");
                 hoveredObj = $(this);
+                let text = linkObjs[$(this).data("uuid")].text;
+                if (text) {
+                    $("#tooltip").text(text);
+                    $("#tooltip").show();
+                }
             });
 
             $(link).on("mouseleave", function (event) {
@@ -999,6 +1030,7 @@ $(document).ready(function () {
                 ) {
                     hoveredObj = null;
                 }
+                $("#tooltip").hide();
             });
             interactive.append(link);
         }
@@ -1009,7 +1041,7 @@ $(document).ready(function () {
             nodes: nodeObjs,
             links: linkObjs,
         };
-        textarea.value = JSON.stringify(contentsObj, jsonCleaner, 4);
+        fileText = JSON.stringify(contentsObj, jsonCleaner, 4);
         setupDownload();
     };
 
@@ -1026,9 +1058,7 @@ $(document).ready(function () {
             updateChoices();
             updatePaths();
 
-            if (!inputtingText) {
-                updateFile();
-            }
+            updateFile();
         }
 
         previousTimeStamp = timeStamp;
@@ -1067,12 +1097,12 @@ $(document).ready(function () {
     } */
 
     function setupDownload() {
-        if (textarea.value == "") {
+        if (fileText == "") {
             document.getElementById("downloadButton").style.display = "none";
             return;
         }
 
-        const blob = new Blob([textarea.value], { type: "text/plain" });
+        const blob = new Blob([fileText], { type: "text/plain" });
         const url = URL.createObjectURL(blob);
         const downloadButton = document.getElementById("downloadButton");
         /* downloadButton.addEventListener("click", function () {
